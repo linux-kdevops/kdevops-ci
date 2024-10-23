@@ -18,6 +18,9 @@ jobs:
         run: |
           git config --global --add safe.directory '*'
 
+      - name: Set Linux kdevops development path
+        run: echo "LINUX_KDEVOPS_PATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+
       - name: Checkout kdevops
         run: |
           rm -rf kdevops
@@ -95,33 +98,34 @@ jobs:
           cd kdevops
           make ci-test
 
-      - name: Get the defined CI test results for this repository
+      - name: Get systemd journal files
         if: always() # This ensures the step runs even if previous steps failed
         run: |
           cd kdevops
           make journal-dump
-          make ci-results > results.txt
-          sed -i 's|^|kdevops/|' results.txt
-          cat results.txt
 
-      - name: Read results.txt and set environment variable
+      - name: Start SSH Agent
+        if: always()  # Ensure this step runs even if previous steps failed
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Build our kdevops archive results
         if: always() # This ensures the step runs even if previous steps failed
         run: |
-          FILE_PATHS=$(cat kdevops/results.txt | tr '\n' '\n')
-          echo "FILE_PATHS<<EOF" >> $GITHUB_ENV
-          echo "$FILE_PATHS" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          cd kdevops
+          make ci-archive
 
-      - name: Upload files listed in results.txt as artifacts
+      - name: Upload our kdevops results archive
         if: always() # This ensures the step runs even if previous steps failed
         uses: actions/upload-artifact@v4
         with:
           name: kdevops-ci-results
-          path: ${{ env.FILE_PATHS }}
+          path: ${{ env.LINUX_KDEVOPS_PATH }}/kdevops/archive/*.zip
 
       # Ensure make destroy always runs, even on failure
       - name: Run kdevops make destroy
-        if: always() # This ensures the step runs even if previous steps failed
+        if: always()  # This ensures the step runs even if previous steps failed
         run: |
           cd kdevops
           make destroy
