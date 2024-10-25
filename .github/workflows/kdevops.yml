@@ -14,14 +14,6 @@ jobs:
     name: Run kdevops CI on Self-hosted Runner
     runs-on: [self-hosted, Linux, X64]
     steps:
-      - name: Set CI metadata for kdevops-results-archive
-        run: |
-          echo "$(basename ${{ github.repository }})" > ci.trigger
-          git log -1 --pretty=format:"%s" > ci.subject
-          # Start out pessimistic
-          echo "not ok" > ci.result
-          echo "Nothing to write home about." > ci.commit_extra
-
       - name: Configure git
         run: |
           git config --global --add safe.directory '*'
@@ -33,6 +25,15 @@ jobs:
         run: |
           rm -rf kdevops
           git clone /mirror/kdevops.git kdevops
+
+      - name: Set CI metadata for kdevops-results-archive
+        run: |
+          cd kdevops
+          echo "$(basename ${{ github.repository }})" > ci.trigger
+          git log -1 --pretty=format:"%s" > ci.subject
+          # Start out pessimistic
+          echo "not ok" > ci.result
+          echo "Nothing to write home about." > ci.commit_extra
 
       - name: Checkout custom branch with delta on kdevops/linux
         run: |
