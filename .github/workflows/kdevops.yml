@@ -26,6 +26,15 @@ jobs:
           rm -rf kdevops
           git clone /mirror/kdevops.git kdevops
 
+      - name: Make sure our repo kdevops defconfig exists
+        run: |
+          KDEVOPS_DEFCONFIG=$(echo $(basename ${{ github.repository }}))
+          cd kdevops
+          if [[ ! -f defconfigs/$KDEVOPS_DEFCONFIG ]]; then
+            echo "kdevops lacks a defconfig for this repository, expected to find: defconfigs/$KDEVOPS_DEFCONFIG"
+            exit 1
+          fi
+
       - name: Set CI metadata for kdevops-results-archive
         run: |
           cd kdevops
@@ -51,15 +60,6 @@ jobs:
           cd kdevops/linux
           make defconfig
           make -j$(nproc)
-
-      - name: Make sure our repo kdevops defconfig exists
-        run: |
-          KDEVOPS_DEFCONFIG=$(echo $(basename ${{ github.repository }}))
-          cd kdevops
-          if [[ ! -f defconfigs/$KDEVOPS_DEFCONFIG ]]; then
-            echo "kdevops lacks a defconfig for this repository, expected to find: defconfigs/$KDEVOPS_DEFCONFIG"
-            exit 1
-          fi
 
       - name: Run kdevops make defconfig-repo
         run: |
