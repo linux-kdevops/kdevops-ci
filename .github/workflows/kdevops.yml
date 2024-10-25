@@ -14,6 +14,14 @@ jobs:
     name: Run kdevops CI on Self-hosted Runner
     runs-on: [self-hosted, Linux, X64]
     steps:
+      - name: Set CI metadata for kdevops-results-archive
+        run: |
+          echo "$(basename ${{ github.repository }})" > ci.trigger
+          git log -1 --pretty=format:"%s" > ci.subject
+          # Start out pessimistic
+          echo "not ok" > ci.result
+          echo "Nothing to write home about." > ci.commit_extra
+
       - name: Configure git
         run: |
           git config --global --add safe.directory '*'
@@ -97,6 +105,7 @@ jobs:
         run: |
           cd kdevops
           make ci-test
+          echo "ok" > ci.result
 
       - name: Get systemd journal files
         if: always() # This ensures the step runs even if previous steps failed
