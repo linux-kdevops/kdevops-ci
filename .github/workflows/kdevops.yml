@@ -62,10 +62,12 @@ jobs:
           # use the last commit message. This is for example how
           # kernel-patch-daemon pushes changes, the last commit is the last
           # patch from series posted and picked up from patchwork.
-          if git diff-tree --no-commit-id --name-only -r HEAD | grep -q "^\.github/"; then
+          if git diff-tree --no-commit-id --name-only --diff-filter=A -r HEAD | grep -q "^\.github/"; then
             git log -2 --skip=1 --pretty=format:"%s" -1 > ../ci.subject
+            git describe --exact-match --tags HEAD^ 2>/dev/null || git rev-parse --short HEAD^ > ../ci.ref
           else
-            git log -1 --pretty=format:"%s" > ci.subject
+            git log -1 --pretty=format:"%s" > ../ci.subject
+            git describe --exact-match --tags HEAD 2>/dev/null || git rev-parse --short HEAD > ../ci.ref
           fi
 
       - name: Run a quick Linux kernel defconfig build test
