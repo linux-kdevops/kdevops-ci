@@ -35,7 +35,7 @@ jobs:
             exit 1
           fi
 
-      - name: Set CI metadata for kdevops-results-archive
+      - name: Initialize CI metadata for kdevops-results-archive
         run: |
           cd kdevops
           echo "$(basename ${{ github.repository }})" > ci.trigger
