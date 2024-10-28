@@ -35,15 +35,6 @@ jobs:
             exit 1
           fi
 
-      - name: Initialize CI metadata for kdevops-results-archive
-        run: |
-          cd kdevops
-          echo "$(basename ${{ github.repository }})" > ci.trigger
-          git log -1 --pretty=format:"%s" > ci.subject
-          # Start out pessimistic
-          echo "not ok" > ci.result
-          echo "Nothing to write home about." > ci.commit_extra
-
       - name: Checkout custom branch with delta on kdevops/linux
         run: |
           LINUX_TREE="https://github.com/${{ github.repository }}"
@@ -54,6 +45,28 @@ jobs:
           git fetch origin $LINUX_TREE_REF
           git checkout $LINUX_TREE_REF
           git log -1
+
+      - name: Initialize CI metadata for kdevops-results-archive for linux
+        run: |
+          cd kdevops/linux
+          echo "$(basename ${{ github.repository }})" > ../ci.trigger
+
+          # Check if the last commit modified .github directory.
+          # This lets you merge the .github changes either before a patch
+          # series as kernel-patch-daemon does, or if you want to keep your
+          # git commit IDs from an existing development tree, at the end.
+          # You would merge the changes which add the .github directory for
+          # example if you want to test an existing development tree.
+          #
+          # If the last commit was not the one which added .github directory
+          # use the last commit message. This is for example how
+          # kernel-patch-daemon pushes changes, the last commit is the last
+          # patch from series posted and picked up from patchwork.
+          if git diff-tree --no-commit-id --name-only -r HEAD | grep -q "^\.github/"; then
+            git log -2 --skip=1 --pretty=format:"%s" -1 > ../ci.subject
+          else
+            git log -1 --pretty=format:"%s" > ci.subject
+          fi
 
       - name: Run a quick Linux kernel defconfig build test
         run: |
