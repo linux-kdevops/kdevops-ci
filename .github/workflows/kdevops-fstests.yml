@@ -1,0 +1,155 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+# Run kdevops filesystem testing.
+
+name: Run fstests
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
+  workflow_dispatch:  # Add this for manual triggering of the workflow
+    inputs:
+      defconfig:
+        description: "Select defconfig"
+        required: false
+        default: "all profiles"
+        type: choice
+        options:
+          - "all profiles"
+          - "xfs_reflink_4k"
+          - "xfs_nocrc_4k"
+      soak:
+        description: "Select soak duration"
+        required: false
+        default: "No soak"
+        type: choice
+        options:
+          - "No soak"
+          - "Low - 30 minutes"
+          - "Mid - 1 hour"
+          - "High - 2.5 hours"
+          - "Pathological - 48 hours"
+      tests:
+        description: "Select additional test coverage"
+        required: false
+        default: "all"
+        type: choice
+        options:
+          - "all"
+          - "generic/003"
+          - "generic/751"
+          - "custom"
+      custom_tests:
+        description: "Enter custom test(s) (space or comma-separated: 'test1 test2' or 'test1,test2')"
+        required: false
+        type: string
+        default: ""
+      timeout_minutes:
+        description: "Timeout in minutes"
+        required: true
+        default: 43200 # 1 month
+        type: choice
+        options:
+          - 1440 # 1 day
+          - 10080 # 1 week
+          - 20160 #  2 weeks
+          - 43200 # 1 month
+          - 129600 # 3 months
+          - 259200 # 6 months
+
+jobs:
+  fstests_input_validation:
+    name: Process input parameters for fstests
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: ${{ fromJson(github.event.inputs.timeout_minutes || '43200') }}
+    outputs:
+      kdevops_test_timeout: ${{ steps.set_timeout.outputs.kdevops_test_timeout }}
+      selected_tests: ${{ steps.process_tests.outputs.tests }}
+      kdevops_defconfig: ${{ steps.process_defconfig.outputs.defconfig }}
+    steps:
+      - name: Process timeout
+        id: set_timeout
+        run: |
+          TEST_TIMEOUT="${{ fromJson((github.event.inputs && github.event.inputs.timeout_minutes) || '43200') }}"
+          echo "Timeout minutes is $TEST_TIMEOUT"
+          echo kdevops_test_timeout="$TEST_TIMEOUT" >> $GITHUB_OUTPUT
+
+      - name: Process test selection
+        id: process_tests
+        run: |
+          if [[ "${{ github.event.inputs.tests }}" == "custom" ]]; then
+            if [[ -n "${{ github.event.inputs.custom_tests }}" ]]; then
+              # Replace commas with spaces and collapse multiple spaces into single spaces
+              TESTS=$(echo "${{ github.event.inputs.custom_tests }}" | tr ',' ' ' | tr -s ' ')
+              # Trim leading and trailing whitespace
+              TESTS=$(echo "$TESTS" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+              echo "tests=$TESTS" >> $GITHUB_OUTPUT
+              echo "Custom tests selected: $TESTS"
+            else
+              echo "No custom tests provided, falling back to all"
+              echo "tests=all" >> $GITHUB_OUTPUT
+            fi
+          elif [[ "${{ github.event.inputs.tests }}" == "" ||
+                  "${{ github.event.inputs.tests }}" == "all" ]]; then
+            echo "Automated test so no specific test requested"
+            echo "tests=all" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Process defconfig
+        id: process_defconfig
+        run: |
+          KDEVOPS_DEFCONFIG=$(basename ${{ github.repository }})
+          if [[ "${{ github.event.inputs.defconfig }}" == "all profiles" ]] || [[ "${{ github.event.inputs.defconfig }}" == "" ]]; then
+            KDEVOPS_DEFCONFIG=$(basename ${{ github.repository }})
+          else
+            KDEVOPS_DEFCONFIG="${{ github.event.inputs.defconfig }}-cli"
+          fi
+
+          echo "defconfig=$KDEVOPS_DEFCONFIG" >> $GITHUB_OUTPUT
+
+  initialize_kdevops:
+    needs: fstests_input_validation
+    name: Initialize kdevops environment
+    uses: ./.github/workflows/kdevops-init.yml
+    with:
+      kdevops_defconfig: ${{ needs.fstests_input_validation.outputs.kdevops_defconfig }}
+    secrets: inherit
+
+  run_kdevops_fstests:
+    needs: [fstests_input_validation, initialize_kdevops]
+    name: Run CI tests
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: ${{ needs.fstests_input_validation.outputs.kdevops_test_timeout }}
+    steps:
+      - name: Run CI tests
+        run: |
+          cd kdevops
+          if [[ "${{ needs.fstests_input_validation.outputs.selected_tests }}" == "all" ]]; then
+            echo "Running all the tests ..."
+            nohup stdbuf -oL bash -c 'make ci-test' > ci.log 2>&1 &
+          else
+            echo "Running selective tests: ${{ needs.fstests_input_validation.outputs.selected_tests }}"
+            nohup stdbuf -oL bash -c 'make fstests-baseline TESTS="${{ needs.fstests_input_validation.outputs.selected_tests }}"' > ci.log 2>&1 &
+          fi
+          echo $! > ci.pid
+
+          CI_WATCHDOG="./scripts/workflows/fstests/fstests_watchdog.py hosts baseline"
+          while kill -0 $(cat ci.pid) 2> /dev/null; do
+            $CI_WATCHDOG || echo watchdog barfed
+            sleep 60
+          done
+
+          find workflows/fstests/results/last-run -name xunit_results.txt -type f -exec cat {} \; > ci.commit_extra || true
+          if ! grep -E "failures, [1-9]|errors, [1-9]" ci.commit_extra; then
+            echo "ok" > ci.result
+          fi
+
+  cleanup-kdevops:
+    needs: run_kdevops_fstests
+    if: always()
+    uses: ./.github/workflows/kdevops-cleanup.yml
+    secrets: inherit
