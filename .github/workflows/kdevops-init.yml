@@ -1,17 +1,28 @@
-name: Run generic kdevops CI runner workflow
+# SPDX-License-Identifier: GPL-2.0
+#
+# This can be used as a initialization workflow for most Linux kernel
+# development environments. This takes care of:
+#
+#   - Checks out and re-using a local mirror for your kernel tree
+#   - Looks for a defconfig in kdevops to use for your kernel tree
+#   - Sets up CI metadata for kdevops-results-archive
+#   - Ensures your kernel tree at least builds with defconfig
+#   - Brings up target DUTs nodes
+#   - Installs your Linux kernel tree on them
+#   - Builds all of your test requirements for your Linux kernel tree
+
+name: Base kdevops workflow
 
 on:
-  push:
-    branches:
-      - '**'
-  pull_request:
-    branches:
-      - '**'
-  workflow_dispatch:  # Add this for manual triggering of the workflow
+  workflow_call:  # Makes this workflow reusable
+    inputs:
+      kdevops_defconfig:
+        required: false
+        type: string
 
 jobs:
-  run-kdevops:
-    name: Run kdevops CI on Self-hosted Runner
+  setup:
+    name: Setup kdevops environment
     runs-on: [self-hosted, Linux, X64]
     steps:
       - name: Configure git
@@ -29,11 +40,10 @@ jobs:
       - name: Make sure our repo kdevops defconfig exists
         run: |
           cd kdevops
-          KDEVOPS_DEFCONFIG=$(basename ${{ github.repository }})
-          if [[ "${{ github.event.inputs.defconfig }}" == "all profiles" ]] || [[ "${{ github.event.inputs.defconfig }}" == "" ]]; then
+          if [[ -z "${{ inputs.kdevops_defconfig }}" ]]; then
             KDEVOPS_DEFCONFIG=$(basename ${{ github.repository }})
           else
-            KDEVOPS_DEFCONFIG="${{ github.event.inputs.defconfig }}-cli"
+            KDEVOPS_DEFCONFIG="${{ inputs.kdevops_defconfig }}"
           fi
 
           if [[ ! -f defconfigs/$KDEVOPS_DEFCONFIG ]]; then
@@ -59,17 +69,24 @@ jobs:
           cd kdevops/linux
           echo "$(basename ${{ github.repository }})" > ../ci.trigger
 
-          # Check if the last commit modified .github directory.
-          # This lets you merge the .github changes either before a patch
-          # series as kernel-patch-daemon does, or if you want to keep your
-          # git commit IDs from an existing development tree, at the end.
-          # You would merge the changes which add the .github directory for
-          # example if you want to test an existing development tree.
+          # This supports using kdevops github actions using two different
+          # approaches:
           #
-          # If the last commit was not the one which added .github directory
-          # use the last commit message. This is for example how
-          # kernel-patch-daemon pushes changes, the last commit is the last
-          # patch from series posted and picked up from patchwork.
+          #  1) Commit the .github/ directory onto a Linux tree before your
+          #     kernel changes. This approach is used for examplae for
+          #     testing patches posted on the mailing list with patchwork,
+          #     this is the strategy kernel-patch-deaemon uses. Since the
+          #     patches are ephemeral there is not important git history to
+          #     maintain.
+          #
+          #  2) Merge the .github/ directory at the end of your development
+          #     tree. This is useful for kernel developers wishing to test
+          #     existing trees.
+          #
+          # So this checks to see if the last commit *added the .github
+          # directory. If the last commit added it, then we assume the commit
+          # prior to it was the one we'd like to document as the main test
+          # point.
           if git diff-tree --no-commit-id --name-only --diff-filter=A -r HEAD | grep -q "^\.github/"; then
             git log -2 --skip=1 --pretty=format:"%s" -1 > ../ci.subject
             git describe --exact-match --tags HEAD^ 2>/dev/null || git rev-parse --short HEAD^ > ../ci.ref
@@ -79,7 +96,7 @@ jobs:
           fi
 
           # Start out pessimistic
-          echo "not ok" > ../ci.result
+          echo "unknown" > ../ci.result
           echo "Nothing to write home about." > ../ci.commit_extra
 
       - name: Run a quick Linux kernel defconfig build test
@@ -129,43 +146,3 @@ jobs:
         run: |
           cd kdevops
           make ci-build-test
-
-      - name: Run CI tests
-        run: |
-          cd kdevops
-          make ci-test
-          echo "ok" > ci.result
-
-      - name: Get systemd journal files
-        if: always() # This ensures the step runs even if previous steps failed
-        run: |
-          cd kdevops
-          make journal-dump
-
-      - name: Start SSH Agent
-        if: always()  # Ensure this step runs even if previous steps failed
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-      - name: Build our kdevops archive results
-        if: always() # This ensures the step runs even if previous steps failed
-        run: |
-          cd kdevops
-          make ci-archive
-
-      - name: Upload our kdevops results archive
-        if: always() # This ensures the step runs even if previous steps failed
-        uses: actions/upload-artifact@v4
-        with:
-          name: kdevops-ci-results
-          path: ${{ env.LINUX_KDEVOPS_PATH }}/kdevops/archive/*.zip
-
-      # Ensure make destroy always runs, even on failure
-      - name: Run kdevops make destroy
-        if: always()  # This ensures the step runs even if previous steps failed
-        run: |
-          cd kdevops
-          make destroy
-          cd ..
-          rm -rf kdevops
