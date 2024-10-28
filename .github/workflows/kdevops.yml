@@ -28,12 +28,20 @@ jobs:
 
       - name: Make sure our repo kdevops defconfig exists
         run: |
-          KDEVOPS_DEFCONFIG=$(echo $(basename ${{ github.repository }}))
           cd kdevops
+          KDEVOPS_DEFCONFIG=$(basename ${{ github.repository }})
+          if [[ "${{ github.event.inputs.defconfig }}" == "all profiles" ]] || [[ "${{ github.event.inputs.defconfig }}" == "" ]]; then
+            KDEVOPS_DEFCONFIG=$(basename ${{ github.repository }})
+          else
+            KDEVOPS_DEFCONFIG="${{ github.event.inputs.defconfig }}-cli"
+          fi
+
           if [[ ! -f defconfigs/$KDEVOPS_DEFCONFIG ]]; then
             echo "kdevops lacks a defconfig for this repository, expected to find: defconfigs/$KDEVOPS_DEFCONFIG"
             exit 1
           fi
+
+          echo "KDEVOPS_DEFCONFIG=$KDEVOPS_DEFCONFIG" >> $GITHUB_ENV
 
       - name: Checkout custom branch with delta on kdevops/linux
         run: |
@@ -70,6 +78,10 @@ jobs:
             git describe --exact-match --tags HEAD 2>/dev/null || git rev-parse --short HEAD > ../ci.ref
           fi
 
+          # Start out pessimistic
+          echo "not ok" > ../ci.result
+          echo "Nothing to write home about." > ../ci.commit_extra
+
       - name: Run a quick Linux kernel defconfig build test
         run: |
           cd kdevops/linux
@@ -80,16 +92,17 @@ jobs:
         run: |
           LINUX_TREE="https://github.com/${{ github.repository }}"
           LINUX_TREE_REF="${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}"
-          KDEVOPS_DEFCONFIG=$(echo $(basename ${{ github.repository }}))
           KDEVOPS_HOSTS_PREFIX="$(echo ${LINUX_TREE_REF:0:4})"
-          echo Going to use defconfig-$(basename ${{ github.repository }})
+          echo Going to use defconfig-${{ env.KDEVOPS_DEFCONFIG }}
 
           echo "Linux tree:          $LINUX_TREE"
-          echo "Linux ref:           $LINUX_TREE_REF"
+          echo "Linux trigger ref:   $LINUX_TREE_REF"
+          echo "Linux ref:           $(cat ../ci.ref)"
           echo "Runner ID:           ${{ github.run_id }}"
           echo "kdevops host prefix: $KDEVOPS_HOSTS_PREFIX"
+          echo "kdevops defconfig:   defconfig-${{ env.KDEVOPS_DEFCONFIG }}"
 
-          KDEVOPS_ARGS="KDEVOPS_HOSTS_PREFIX=$KDEVOPS_HOSTS_PREFIX LINUX_TREE=$LINUX_TREE LINUX_TREE_REF=$LINUX_TREE_REF defconfig-$KDEVOPS_DEFCONFIG"
+          KDEVOPS_ARGS="KDEVOPS_HOSTS_PREFIX=$KDEVOPS_HOSTS_PREFIX LINUX_TREE=$LINUX_TREE LINUX_TREE_REF=$LINUX_TREE_REF defconfig-${{ env.KDEVOPS_DEFCONFIG }}"
           echo Going to run:
           echo make $KDEVOPS_ARGS
 
