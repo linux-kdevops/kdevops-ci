@@ -29,8 +29,12 @@ jobs:
           cd kdevops
           make ci-test
 
-          tail -n 1 workflows/selftests/results/last-run/*/*.dmesg.log > ci.commit_extra
+          echo -e "Kernel tests results:\n" > ci.commit_extra
+          tail -n 1 workflows/selftests/results/last-run/*/*.dmesg.log >> ci.commit_extra
+          echo -e "\n\n" >> ci.commit_extra
+          echo -e "Userspace test results:\n" >> ci.commit_extra
           tail -n 1 workflows/selftests/results/last-run/*/*.userspace.log >> ci.commit_extra
+          echo -e "\n\n" >> ci.commit_extra
 
           if grep -i -q "fail" ci.commit_extra ; then
             echo "fail" > ci.result
