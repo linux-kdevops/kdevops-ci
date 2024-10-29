@@ -55,17 +55,16 @@ on:
         type: choice
         options:
           - 1440 # 1 day
-          - 10080 # 1 week
-          - 20160 #  2 weeks
-          - 43200 # 1 month
-          - 129600 # 3 months
-          - 259200 # 6 months
+          - 2880 # 2 days
+          - 4320 # 3 days
+          - 5760 # 4 days
+          - 7200 # 5 days
 
 jobs:
   fstests_input_validation:
     name: Process input parameters for fstests
     runs-on: [self-hosted, Linux, X64]
-    timeout-minutes: ${{ fromJson(github.event.inputs.timeout_minutes || '43200') }}
+    timeout-minutes: ${{ fromJson(github.event.inputs.timeout_minutes || '7200') }}
     outputs:
       kdevops_test_timeout: ${{ steps.set_timeout.outputs.kdevops_test_timeout }}
       selected_tests: ${{ steps.process_tests.outputs.tests }}
@@ -74,9 +73,26 @@ jobs:
       - name: Process timeout
         id: set_timeout
         run: |
-          TEST_TIMEOUT="${{ fromJson((github.event.inputs && github.event.inputs.timeout_minutes) || '43200') }}"
-          echo "Timeout minutes is $TEST_TIMEOUT"
-          echo kdevops_test_timeout="$TEST_TIMEOUT" >> $GITHUB_OUTPUT
+          MAX_TIMEOUT_ALLOWED_GITHUB_SELF_HOSTED="7200"
+          TIMEOUT="$MAX_TIMEOUT_ALLOWED_GITHUB_SELF_HOSTED"
+
+          # Note: Using curly braces for arithmetic comparison
+          REQUESTED_TIMEOUT="${{ fromJson((github.event.inputs && github.event.inputs.timeout_minutes) || '7200') }}"
+          if [[ -n "$REQUESTED_TIMEOUT" ]]; then
+            if [[ ${REQUESTED_TIMEOUT} -gt ${MAX_TIMEOUT_ALLOWED_GITHUB_SELF_HOSTED} ]]; then
+              echo "Requested timeout not allowed for github self-hosted runners."
+              echo "The max allowed today is $MAX_TIMEOUT_ALLOWED_GITHUB_SELF_HOSTED minutes, see:"
+              echo ""
+              echo "https://github.blog/changelog/2024-04-04-actions-jobs-executing-on-self-hosted-runners-will-now-timeout-in-5-days/"
+              echo ""
+              echo "We will use the max value"
+            else
+              TIMEOUT=$REQUESTED_TIMEOUT
+            fi
+          fi
+
+          echo "Setting timeout to $TIMEOUT minutes"
+          echo "kdevops_test_timeout=$TIMEOUT" >> $GITHUB_OUTPUT
 
       - name: Process test selection
         id: process_tests
