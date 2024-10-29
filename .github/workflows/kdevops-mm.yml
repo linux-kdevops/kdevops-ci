@@ -28,7 +28,15 @@ jobs:
         run: |
           cd kdevops
           make ci-test
-          echo "ok" > ci.result
+
+          tail -n 1 workflows/selftests/results/last-run/*/*.dmesg.log > ci.commit_extra
+          tail -n 1 workflows/selftests/results/last-run/*/*.userspace.log >> ci.commit_extra
+
+          if grep -i -q "fail" ci.commit_extra ; then
+            echo "fail" > ci.result
+          else
+            echo "ok" > ci.result
+          fi
 
   cleanup:
     needs: run-tests
