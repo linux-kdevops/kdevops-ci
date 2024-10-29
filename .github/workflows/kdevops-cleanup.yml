@@ -13,6 +13,10 @@ jobs:
     name: Archive results and cleanup
     runs-on: [self-hosted, Linux, X64]
     steps:
+      - name: Set Linux kdevops development path
+        if: always()
+        run: echo "LINUX_KDEVOPS_PATH=${{ inputs.workspace }}" >> $GITHUB_ENV
+
       - name: Get systemd journal files
         if: always()
         run: |
