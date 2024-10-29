@@ -31,9 +31,6 @@ jobs:
           git config --global user.name "kdevops"
           git config --global user.email "kdevops@lists.linux.dev"
 
-      - name: Set Linux kdevops development path
-        run: echo "LINUX_KDEVOPS_PATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
-
       - name: Checkout kdevops
         run: |
           rm -rf kdevops
