@@ -139,7 +139,7 @@ jobs:
     needs: [fstests_input_validation, initialize_kdevops]
     name: Run CI tests
     runs-on: [self-hosted, Linux, X64]
-    timeout-minutes: ${{ needs.fstests_input_validation.outputs.kdevops_test_timeout }}
+    timeout-minutes: 43200
     steps:
       - name: Run CI tests
         run: |
