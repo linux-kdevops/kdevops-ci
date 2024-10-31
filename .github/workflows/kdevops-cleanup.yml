@@ -14,29 +14,29 @@ jobs:
     runs-on: [self-hosted, Linux, X64]
     steps:
       - name: Set Linux kdevops development path
-        if: always()
+        if: ${{ job.status != 'cancelled' }}
         run: echo "LINUX_KDEVOPS_PATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
 
       - name: Get systemd journal files
-        if: always()
+        if: ${{ job.status != 'cancelled' }}
         run: |
           cd kdevops
           make journal-dump
 
       - name: Start SSH Agent
-        if: always()
+        if: ${{ job.status != 'cancelled' }}
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Build our kdevops archive results
-        if: always()
+        if: ${{ job.status != 'cancelled' }}
         run: |
           cd kdevops
           make ci-archive
 
       - name: Upload our kdevops results archive
-        if: always()
+        if: ${{ job.status != 'cancelled' }}
         uses: actions/upload-artifact@v4
         with:
           name: kdevops-ci-results
