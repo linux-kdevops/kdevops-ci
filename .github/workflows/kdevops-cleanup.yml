@@ -7,7 +7,7 @@ name: Kdevops cleanup workflow
 
 on:
   workflow_call:  # Makes this workflow reusable
-      inputs:
+    inputs:
       workspace:
         required: false
         type: string
