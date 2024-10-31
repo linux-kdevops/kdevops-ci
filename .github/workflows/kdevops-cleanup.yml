@@ -7,11 +7,6 @@ name: Kdevops cleanup workflow
 
 on:
   workflow_call:  # Makes this workflow reusable
-    inputs:
-      workspace:
-        required: false
-        type: string
-        default: ${{ github.workspace }}
 
 jobs:
   cleanup:
@@ -20,7 +15,7 @@ jobs:
     steps:
       - name: Set Linux kdevops development path
         if: always()
-        run: echo "LINUX_KDEVOPS_PATH=${{ inputs.workspace }}" >> $GITHUB_ENV
+        run: echo "LINUX_KDEVOPS_PATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
 
       - name: Get systemd journal files
         if: always()

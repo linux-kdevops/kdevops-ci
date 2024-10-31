@@ -45,6 +45,4 @@ jobs:
   cleanup:
     needs: run-tests
     uses: ./.github/workflows/kdevops-cleanup.yml
-    with:
-      workspace: ${{ github.workspace }}
     secrets: inherit
