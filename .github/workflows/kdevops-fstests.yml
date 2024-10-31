@@ -122,7 +122,7 @@ jobs:
           if [[ "${{ github.event.inputs.defconfig }}" == "all profiles" ]] || [[ "${{ github.event.inputs.defconfig }}" == "" ]]; then
             KDEVOPS_DEFCONFIG=$(basename ${{ github.repository }})
           else
-            KDEVOPS_DEFCONFIG="${{ github.event.inputs.defconfig }}-cli"
+            KDEVOPS_DEFCONFIG="${{ github.event.inputs.defconfig }}"
           fi
 
           echo "defconfig=$KDEVOPS_DEFCONFIG" >> $GITHUB_OUTPUT
