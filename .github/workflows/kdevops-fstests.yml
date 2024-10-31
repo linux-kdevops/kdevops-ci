@@ -4,10 +4,19 @@
 
 name: Run fstests
 
+# A repository must have a .github/workflows/*.yml with a workflow_dispatch
+# on the "Default branch" in order to make it available for other branches.
+# Each branch can have custom input options.
+#
+# For XFS we disable the push option for the default branch, but you can add
+# it for your branches or repositories where you do intent to want to trigger
+# an automatic action right away.
+#
+
 on:
-  push:
-    branches:
-      - '**'
+#  push:
+#    branches:
+#      - '**'
   pull_request:
     branches:
       - '**'
