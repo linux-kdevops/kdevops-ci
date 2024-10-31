@@ -177,4 +177,6 @@ jobs:
     needs: run_kdevops_fstests
     if: always()
     uses: ./.github/workflows/kdevops-cleanup.yml
+    with:
+      workspace: ${{ github.workspace }}
     secrets: inherit
