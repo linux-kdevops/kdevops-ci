@@ -43,6 +43,7 @@ jobs:
           fi
 
   cleanup:
-    needs: run-tests
+    needs: [run-tests, setup]  # Add setup as a dependency to ensure proper ordering
+    if: always()  # This ensures cleanup runs even if run-tests fails
     uses: ./.github/workflows/kdevops-cleanup.yml
     secrets: inherit
