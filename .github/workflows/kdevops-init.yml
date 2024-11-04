@@ -25,6 +25,27 @@ jobs:
     name: Setup kdevops environment
     runs-on: [self-hosted, Linux, X64]
     steps:
+      - name: Verify we won't expect user input interactions on the host key
+        run: |
+          mkdir -p ~/.ssh
+          if ! grep -q "StrictHostKeyChecking no" ~/.ssh/config 2>/dev/null; then
+            echo "StrictHostKeyChecking no" >> ~/.ssh/config
+          fi
+
+      - name: Start SSH Agent for initial test
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # Modify the repo here if you have a custom or private URL for the archive
+      # This can also just be a repo variable later.
+      - name: Verify our ssh connection will work
+        run: |
+          if ! git ls-remote git@github.com:linux-kdevops/kdevops-results-archive.git HEAD; then
+            echo "Cannot access kdevops-results-archive repository"
+            exit 1
+          fi
+
       - name: Configure git
         run: |
           git config --global --add safe.directory '*'
