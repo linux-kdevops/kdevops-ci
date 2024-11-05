@@ -25,6 +25,9 @@ on:
       soak:
         required: false
         type: string
+      group:
+        required: false
+        type: string
 
 jobs:
   setup:
@@ -180,6 +183,14 @@ jobs:
           else
             echo "Limited scope of tests selected: ${{ inputs.selected_tests }}"
             KDEVOPS_ARGS="$KDEVOPS_ARGS TESTS='${{ inputs.selected_tests }}'"
+          fi
+
+          if [[ "${{ inputs.group }}" == "auto" ]] || [[ "${{ inputs.selected_tests }}" == "" ]]; then
+            echo "Going to try to use group auto"
+            KDEVOPS_ARGS="$KDEVOPS_ARGS FSTESTS_GROUP=auto"
+          else
+            echo "Going to use custom group: ${{ inputs.group }}"
+            KDEVOPS_ARGS="$KDEVOPS_ARGS FSTESTS_GROUP=${{ inputs.group }}"
           fi
 
           echo "Going to run:"

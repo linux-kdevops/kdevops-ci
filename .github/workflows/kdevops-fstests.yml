@@ -42,6 +42,14 @@ on:
           - "Mid - 1 hour"
           - "High - 2.5 hours"
           - "Pathological - 48 hours"
+      group:
+        description: "Which test group to use"
+        required: false
+        default: "auto"
+        type: choice
+        options:
+          - "auto"
+          - "quick"
       tests:
         description: "Select additional test coverage"
         required: false
@@ -76,6 +84,7 @@ jobs:
     timeout-minutes: ${{ fromJson(github.event.inputs.timeout_minutes || '7200') }}
     outputs:
       kdevops_test_timeout: ${{ steps.set_timeout.outputs.kdevops_test_timeout }}
+      group: ${{ steps.process_group.outputs.group }}
       selected_tests: ${{ steps.process_tests.outputs.tests }}
       kdevops_defconfig: ${{ steps.process_defconfig.outputs.defconfig }}
       soak: ${{ steps.process_soak.outputs.soak }}
@@ -103,6 +112,17 @@ jobs:
 
           echo "Setting timeout to $TIMEOUT minutes"
           echo "kdevops_test_timeout=$TIMEOUT" >> $GITHUB_OUTPUT
+
+      - name: Process group selection
+        id: process_group
+        run: |
+          if [[ "${{ github.event.inputs.group }}" == "auto" ]] || [[ "${{ github.event.inputs.group }}" == "" ]]; then
+              echo "Default group: auto"
+              echo "group=auto" >> $GITHUB_OUTPUT
+          else
+              echo "group=${{ github.event.inputs.group }}" >> $GITHUB_OUTPUT
+              echo "Custom group selected: ${{ github.event.inputs.group }}"
+          fi
 
       - name: Process test selection
         id: process_tests
@@ -156,6 +176,7 @@ jobs:
       kdevops_defconfig: ${{ needs.fstests_input_validation.outputs.kdevops_defconfig }}
       selected_tests: ${{ needs.fstests_input_validation.outputs.tests }}
       soak: ${{ needs.fstests_input_validation.outputs.soak }}
+      group: ${{ needs.fstests_input_validation.outputs.group }}
     secrets: inherit
 
   run_kdevops_fstests:
