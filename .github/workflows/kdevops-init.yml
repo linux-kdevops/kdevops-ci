@@ -19,6 +19,12 @@ on:
       kdevops_defconfig:
         required: false
         type: string
+      selected_tests:
+        required: false
+        type: string
+      soak:
+        required: false
+        type: string
 
 jobs:
   setup:
@@ -162,6 +168,20 @@ jobs:
           echo "kdevops defconfig:   defconfig-${{ env.KDEVOPS_DEFCONFIG }}"
 
           KDEVOPS_ARGS="KDEVOPS_HOSTS_PREFIX=$KDEVOPS_HOSTS_PREFIX LINUX_TREE=$LINUX_TREE LINUX_TREE_REF=$LINUX_TREE_REF defconfig-${{ env.KDEVOPS_DEFCONFIG }}"
+
+          if [[ "${{ inputs.soak }}" == "nosoak" ]] || [[ "${{ inputs.soak }}" == "" ]]; then
+            echo "No custom soak duration used"
+          else
+            KDEVOPS_ARGS="$KDEVOPS_ARGS SOAK_DURATION=${{ inputs.soak }}"
+          fi
+
+          if [[ "${{ inputs.selected_tests }}" == "all" ]] || [[ "${{ inputs.selected_tests }}" == "" ]]; then
+            echo "Going to run all tests"
+          else
+            echo "Limited scope of tests selected: ${{ inputs.selected_tests }}"
+            KDEVOPS_ARGS="$KDEVOPS_ARGS TESTS='${{ inputs.selected_tests }}'"
+          fi
+
           echo "Going to run:"
           echo "make $KDEVOPS_ARGS"
 
