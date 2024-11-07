@@ -143,6 +143,9 @@ jobs:
                   "${{ github.event.inputs.tests }}" == "all" ]]; then
             echo "Automated test so no specific test requested"
             echo "tests=all" >> $GITHUB_OUTPUT
+          else
+              echo "Custom test: ${{ github.event.inputs.tests }}"
+              echo "tests=${{ github.event.inputs.tests }}" >> $GITHUB_OUTPUT
           fi
 
       - name: Process defconfig
@@ -163,9 +166,17 @@ jobs:
           if [[ "${{ github.event.inputs.soak }}" == "No soak" ]] || [[ "${{ github.event.inputs.soak }}" == "" ]]; then
             echo "Using default soak, that is, we don't soak"
             echo "soak=nosoak" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event.inputs.soak }}" == "Low - 30 minutes" ]]; then
+            echo "soak=1800" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event.inputs.soak }}" == "Mid - 1 hour" ]]; then
+            echo "soak=3600" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event.inputs.soak }}" == "High - 2.5 hours" ]]; then
+            echo "soak=9900" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event.inputs.soak }}" == "Pathological - 48 hours" ]]; then
+            echo "soak=172800" >> $GITHUB_OUTPUT
           else
-            echo "soak=${{ github.event.inputs.soak }}" >> $GITHUB_OUTPUT
-            echo "Using custom soak: ${{ github.event.inputs.soak }}"
+            echo "This custom soak option not supported: ${{ github.event.inputs.soak }}"
+            exit 1
           fi
 
   initialize_kdevops:
