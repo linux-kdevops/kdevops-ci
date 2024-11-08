@@ -76,6 +76,7 @@ on:
         type: choice
         options:
           - "auto"
+          - "all"
           - "quick"
       tests:
         description: "Select additional test coverage"
