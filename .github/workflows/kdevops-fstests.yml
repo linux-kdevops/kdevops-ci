@@ -1702,16 +1702,15 @@ jobs:
           cd kdevops
           if [[ "${{ needs.fstests_input_validation.outputs.selected_tests }}" == "all" ]]; then
             echo "Running all the tests ..."
-            nohup stdbuf -oL bash -c 'make ci-test' > ci.log 2>&1 &
+            nohup stdbuf -oL bash -c 'make fstests-baseline-loop' > ci.log 2>&1 &
           else
             echo "Running selective tests: ${{ needs.fstests_input_validation.outputs.selected_tests }}"
-            nohup stdbuf -oL bash -c 'make fstests-baseline TESTS="${{ needs.fstests_input_validation.outputs.selected_tests }}"' > ci.log 2>&1 &
+            nohup stdbuf -oL bash -c 'make fstests-baseline-loop TESTS="${{ needs.fstests_input_validation.outputs.selected_tests }}"' > ci.log 2>&1 &
           fi
           echo $! > ci.pid
 
-          CI_WATCHDOG="./scripts/workflows/fstests/fstests_watchdog.py hosts baseline"
           while kill -0 $(cat ci.pid) 2> /dev/null; do
-            $CI_WATCHDOG || echo watchdog barfed
+            cat .kernel.ci.status
             sleep 60
           done
 
