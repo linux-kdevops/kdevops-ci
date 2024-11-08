@@ -1710,7 +1710,9 @@ jobs:
           echo $! > ci.pid
 
           while kill -0 $(cat ci.pid) 2> /dev/null; do
-            cat .kernel.ci.status
+            if [[ -f .kernel.ci.status ]]; then
+              cat .kernel.ci.status
+            fi
             sleep 60
           done
 
