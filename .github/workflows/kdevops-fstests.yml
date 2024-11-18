@@ -1716,6 +1716,11 @@ jobs:
             sleep 60
           done
 
+          # The main ansible tasks could be killed on a situation where a carsh
+          # was detected on any of the nodes, so we must try to collect results
+          # manually at the very end.
+          make fstests-results
+
           find workflows/fstests/results/last-run -name xunit_results.txt -type f -exec cat {} \; > ci.commit_extra || true
           if ! grep -E "failures, [1-9]|errors, [1-9]" ci.commit_extra; then
             echo "ok" > ci.result
