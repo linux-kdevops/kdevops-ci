@@ -144,13 +144,10 @@ jobs:
           # that commit will not be used, we'll use the last one as that is
           # the relevant git ref we want to annotate a test for.
           #
-          # The compromise here is that we expect no two same identical tests
-          # on the same self-hosted server. We could extend this with something
-          # like github.run_id but its not yet clear if we can have kdevops
-          # hosts with a bundled prefix ID like that ref-runid-testname. Tests
-          # have been done with the full lenght sha1sum though and we know that
-          # does work.
-          KDEVOPS_HOSTS_PREFIX="${{ env.LINUX_GIT_REF }}"
+          # The compromise here we use special KDEVOPS to separete the
+          # commit ID and github.run_id. Exotic things likes UTF characters
+          # and dots have problems.
+          KDEVOPS_HOSTS_PREFIX="${{ env.LINUX_GIT_REF }}KDEVOPS${{ github.run_id }}"
 
           echo "Going to use defconfig-${{ env.KDEVOPS_DEFCONFIG }}"
 
