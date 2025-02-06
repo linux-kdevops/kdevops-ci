@@ -170,7 +170,11 @@ jobs:
           echo "kdevops host prefix: $KDEVOPS_HOSTS_PREFIX"
           echo "kdevops defconfig:   defconfig-${{ env.KDEVOPS_DEFCONFIG }}"
 
-          KDEVOPS_ARGS="KDEVOPS_HOSTS_PREFIX=$KDEVOPS_HOSTS_PREFIX LINUX_TREE=$LINUX_TREE LINUX_TREE_REF=$LINUX_TREE_REF defconfig-${{ env.KDEVOPS_DEFCONFIG }}"
+          KDEVOPS_ARGS="KDEVOPS_HOSTS_PREFIX=$KDEVOPS_HOSTS_PREFIX \
+          LINUX_TREE=$LINUX_TREE \
+          LINUX_TREE_REF=$LINUX_TREE_REF \
+          ANSIBLE_CFG_CALLBACK_PLUGIN="debug" \
+          defconfig-${{ env.KDEVOPS_DEFCONFIG }}"
 
           if [[ "${{ inputs.soak }}" == "nosoak" ]] || [[ "${{ inputs.soak }}" == "" ]]; then
             echo "No custom soak duration used"
