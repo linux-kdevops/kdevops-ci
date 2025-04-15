@@ -31,11 +31,14 @@ name: Run fstests
 # If you want to enable automatic tests for all profiles for your filesystem
 # though you can just remove the comments for push below, just be mindful of
 # the resources you will use for all your pushes.
-
+#
+# We enable auto-push by default on ext4 as the number of profiles are small
+# and the use case to test all profiles is more valuable than not.
+#
 on:
-#  push:
-#    branches:
-#      - '**'
+  push:
+    branches:
+      - '**'
   pull_request:
     branches:
       - '**'
