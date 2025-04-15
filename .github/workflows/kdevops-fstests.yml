@@ -1715,7 +1715,7 @@ jobs:
             sleep 60
           done
 
-          find workflows/fstests/results/last-run -name xunit_results.txt -type f -exec cat {} \; > ci.commit_extra || true
+          make fstests-show-results > ci.commit_extra
           if ! grep -E "failures, [1-9]|errors, [1-9]" ci.commit_extra; then
             echo "ok" > ci.result
           fi
