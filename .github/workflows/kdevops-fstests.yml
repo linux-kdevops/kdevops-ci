@@ -4,14 +4,33 @@
 
 name: Run fstests
 
-# A repository must have a .github/workflows/*.yml with a workflow_dispatch
-# on the "Default branch" in order to make it available for other branches.
-# Each branch can have custom input options.
+# ----------------------------
+# Supporting manual dispatches
+# ----------------------------
 #
-# For XFS we disable the push option for the default branch, but you can add
-# it for your branches or repositories where you do intent to want to trigger
-# an automatic action right away.
+# We want to enable the option for users to manuall customize their tests.
+# This is supported in github through the "workflow_dispatch". In order to
+# allow for that a repository must have a .github/workflows/*.yml with a
+# workflow_dispatch the "Default branch" of the target kernel repository.
+# Typically this is "master" or "main", you whatever it is, you need that
+# brancht to have the github the .github/workflows/ with workflow_dispatch
+# enabled as below.
 #
+# --------------------------
+# Supporting auto-push tests
+# --------------------------
+#
+# By default we disable the push option for the default branch, because this
+# can trigger tests to run for all profiles. If the filesystem you want to test
+# has 20 profiles then that means using 20 guests for a single push. It is
+# best to then leave the discretion of *what* you want to test down to the
+# user using the CI interface through the manual dispatch:
+#
+# https://github.com/linux-kdevops/kdevops/blob/main/docs/kernel-ci/linux-filesystems-kdevops-CI-testing.md
+#
+# If you want to enable automatic tests for all profiles for your filesystem
+# though you can just remove the comments for push below, just be mindful of
+# the resources you will use for all your pushes.
 
 on:
 #  push:
