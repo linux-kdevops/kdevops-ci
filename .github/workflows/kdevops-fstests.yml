@@ -51,7 +51,14 @@ on:
         type: choice
         options:
           - "all profiles"
+          - "ext4_1k"
           - "ext4_2k"
+          - "ext4_4k"
+          - "ext4_bigalloc16k_4k"
+          - "ext4_bigalloc32k_4k"
+          - "ext4_bigalloc64k_4k"
+          - "ext4_bigalloc1024k_4k"
+          - "ext4_advanced_features"
       soak:
         description: "Select soak duration"
         required: false
