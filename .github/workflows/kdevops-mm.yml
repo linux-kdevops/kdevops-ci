@@ -51,10 +51,15 @@ jobs:
           if kill -0 $CI_PID 2>/dev/null; then
             echo "Killing ci-test due to possible crash."
             echo "Try to end things gracefully sending TERM first..."
-            kill -TERM -- -"$CI_PID" 2>/dev/null || true
-            sleep 10
+            kill -TERM -- "$CI_PID" 2>/dev/null || true
+            # We want to wait for all processes to end, if we killed
+            # a stalled system or crashed system, the make ci-archive
+            # will run, and this can take some time. 5 minutes should do.
+            sleep $((5*60))
+
+            # Experience shows by this time, the process would be dead
             echo "Now we wack all processes sending KILL ..."
-            kill -KILL -- -"$CI_PID" 2>/dev/null || true
+            kill -KILL -- "$CI_PID" 2>/dev/null || true
             # we are tempted to try to collect logs but if the hosts
             # are crashed that's futile. Just hope we collected the
             # crash logs.
@@ -62,7 +67,7 @@ jobs:
             echo "ci-test process already exited"
           fi
 
-          # If you crashed you may not have any results collected ohter
+          # If you crashed you may not have any results collected other
           # than your kernel crashes.
           if [[ -d workflows/selftests/results/last-run ]]; then
             # Check for kernel test logs and add them if they exist
