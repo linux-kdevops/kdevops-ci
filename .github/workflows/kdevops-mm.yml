@@ -27,7 +27,13 @@ jobs:
       - name: Run CI tests
         run: |
           cd kdevops
-          make ci-test
+          nohup stdbuf -oL bash -c 'make ci-test' > ci.log 2>&1 &
+          echo $! > ci.pid
+          CI_WATCHDOG="scripts/workflows/generic/crash_watchdog.py"
+          while kill -0 $(cat ci.pid) 2> /dev/null; do
+            $CI_WATCHDOG || echo watchdog barfed
+            sleep 60
+          done
 
           echo -e "Kernel tests results:\n" > ci.commit_extra
           tail -n 1 workflows/selftests/results/last-run/*/*.dmesg.log >> ci.commit_extra
@@ -36,7 +42,9 @@ jobs:
           tail -n 1 workflows/selftests/results/last-run/*/*.userspace.log >> ci.commit_extra
           echo -e "\n\n" >> ci.commit_extra
 
-          if grep -i -q "fail" ci.commit_extra ; then
+          ./scripts/workflows/generic/crash_report.py >> ci.commit_extra
+
+          if grep -i -q "fail" ci.commit_extra || [ -d crash ]; then
             echo "fail" > ci.result
           else
             echo "ok" > ci.result
