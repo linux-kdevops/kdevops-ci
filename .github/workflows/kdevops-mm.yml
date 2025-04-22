@@ -35,12 +35,29 @@ jobs:
             sleep 60
           done
 
-          echo -e "Kernel tests results:\n" > ci.commit_extra
-          tail -n 1 workflows/selftests/results/last-run/*/*.dmesg.log >> ci.commit_extra
-          echo -e "\n\n" >> ci.commit_extra
-          echo -e "Userspace test results:\n" >> ci.commit_extra
-          tail -n 1 workflows/selftests/results/last-run/*/*.userspace.log >> ci.commit_extra
-          echo -e "\n\n" >> ci.commit_extra
+          # Check for kernel test logs and add them if they exist
+          KERNEL_LOGS=$(find workflows/selftests/results/last-run -name "*.dmesg.log" 2>/dev/null)
+          if [ -n "$KERNEL_LOGS" ]; then
+            echo -e "Kernel tests results:\n" > ci.commit_extra
+            for log in $KERNEL_LOGS; do
+              if [ -s "$log" ]; then
+                tail -n 1 "$log" >> ci.commit_extra
+              fi
+            done
+            echo -e "\n\n" >> ci.commit_extra
+          fi
+
+          # Check for userspace test logs and add them if they exist
+          USERSPACE_LOGS=$(find workflows/selftests/results/last-run -name "*.userspace.log" 2>/dev/null)
+          if [ -n "$USERSPACE_LOGS" ]; then
+            echo -e "Userspace test results:\n" >> ci.commit_extra
+            for log in $USERSPACE_LOGS; do
+              if [ -s "$log" ]; then
+                echo "Results from $log:" >> ci.commit_extra
+                tail -n 1 "$log" >> ci.commit_extra
+              fi
+            done
+          fi
 
           ./scripts/workflows/generic/crash_report.py >> ci.commit_extra
 
