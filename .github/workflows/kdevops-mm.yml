@@ -44,27 +44,29 @@ jobs:
           CI_PID=$(cat ci.pid)
           CI_WATCHDOG="scripts/workflows/generic/crash_watchdog.py"
           while kill -0 $CI_PID 2> /dev/null; do
-            $CI_WATCHDOG || break
+            $CI_WATCHDOG || touch .crashed
             sleep 60
           done
 
-          if kill -0 $CI_PID 2>/dev/null; then
-            echo "Killing ci-test due to possible crash."
-            echo "Try to end things gracefully sending TERM first..."
-            kill -TERM -- "$CI_PID" 2>/dev/null || true
-            # We want to wait for all processes to end, if we killed
-            # a stalled system or crashed system, the make ci-archive
-            # will run, and this can take some time. 5 minutes should do.
-            sleep $((5*60))
+          if [[ -f .crashed ]]; then
+            if kill -0 $CI_PID 2>/dev/null; then
+              echo "Killing ci-test due to possible crash."
+              echo "Try to end things gracefully sending TERM first..."
+              kill -TERM -- "$CI_PID" 2>/dev/null || true
+              # We want to wait for all processes to end, if we killed
+              # a stalled system or crashed system, the make ci-archive
+              # will run, and this can take some time. 5 minutes should do.
+              sleep $((5*60))
 
-            # Experience shows by this time, the process would be dead
-            echo "Now we wack all processes sending KILL ..."
-            kill -KILL -- "$CI_PID" 2>/dev/null || true
-            # we are tempted to try to collect logs but if the hosts
-            # are crashed that's futile. Just hope we collected the
-            # crash logs.
-          else
-            echo "ci-test process already exited"
+              # Experience shows by this time, the process would be dead
+              echo "Now we wack all processes sending KILL ..."
+              kill -KILL -- "$CI_PID" 2>/dev/null || true
+              # we are tempted to try to collect logs but if the hosts
+              # are crashed that's futile. Just hope we collected the
+              # crash logs.
+            else
+              echo "ci-test process already exited"
+            fi
           fi
 
           # If you crashed you may not have any results collected other
@@ -95,12 +97,12 @@ jobs:
             fi
           fi
 
-          if [[ -d crashes ]]; then
+          if [[ -f .crashed ]]; then
             echo "Generating crash report ..."
             ./scripts/workflows/generic/crash_report.py >> ci.commit_extra
           fi
 
-          if grep -i -q "fail" ci.commit_extra || [ -d crash ]; then
+          if grep -i -q "fail" ci.commit_extra || [ -f .crashed ]; then
             echo "fail" > ci.result
           else
             echo "ok" > ci.result
