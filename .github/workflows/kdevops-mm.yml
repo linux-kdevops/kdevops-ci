@@ -62,31 +62,38 @@ jobs:
             echo "ci-test process already exited"
           fi
 
-          # Check for kernel test logs and add them if they exist
-          KERNEL_LOGS=$(find workflows/selftests/results/last-run -name "*.dmesg.log" 2>/dev/null)
-          if [ -n "$KERNEL_LOGS" ]; then
-            echo -e "Kernel tests results:\n" > ci.commit_extra
-            for log in $KERNEL_LOGS; do
-              if [ -s "$log" ]; then
-                tail -n 1 "$log" >> ci.commit_extra
-              fi
-            done
-            echo -e "\n\n" >> ci.commit_extra
+          # If you crashed you may not have any results collected ohter
+          # than your kernel crashes.
+          if [[ -d workflows/selftests/results/last-run ]]; then
+            # Check for kernel test logs and add them if they exist
+            KERNEL_LOGS=$(find workflows/selftests/results/last-run -name "*.dmesg.log" 2>/dev/null)
+            if [ -n "$KERNEL_LOGS" ]; then
+              echo -e "Kernel tests results:\n" > ci.commit_extra
+              for log in $KERNEL_LOGS; do
+                if [ -s "$log" ]; then
+                  tail -n 1 "$log" >> ci.commit_extra
+                fi
+              done
+              echo -e "\n\n" >> ci.commit_extra
+            fi
+
+            # Check for userspace test logs and add them if they exist
+            USERSPACE_LOGS=$(find workflows/selftests/results/last-run -name "*.userspace.log" 2>/dev/null)
+            if [ -n "$USERSPACE_LOGS" ]; then
+              echo -e "Userspace test results:\n" >> ci.commit_extra
+              for log in $USERSPACE_LOGS; do
+                if [ -s "$log" ]; then
+                  echo "Results from $log:" >> ci.commit_extra
+                  tail -n 1 "$log" >> ci.commit_extra
+                fi
+              done
+            fi
           fi
 
-          # Check for userspace test logs and add them if they exist
-          USERSPACE_LOGS=$(find workflows/selftests/results/last-run -name "*.userspace.log" 2>/dev/null)
-          if [ -n "$USERSPACE_LOGS" ]; then
-            echo -e "Userspace test results:\n" >> ci.commit_extra
-            for log in $USERSPACE_LOGS; do
-              if [ -s "$log" ]; then
-                echo "Results from $log:" >> ci.commit_extra
-                tail -n 1 "$log" >> ci.commit_extra
-              fi
-            done
+          if [[ -d crashes ]]; then
+            echo "Generating crash report ..."
+            ./scripts/workflows/generic/crash_report.py >> ci.commit_extra
           fi
-
-          ./scripts/workflows/generic/crash_report.py >> ci.commit_extra
 
           if grep -i -q "fail" ci.commit_extra || [ -d crash ]; then
             echo "fail" > ci.result
