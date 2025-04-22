@@ -55,9 +55,9 @@ jobs:
             sleep 10
             echo "Now we wack all processes sending KILL ..."
             kill -KILL -- -"$CI_PID" 2>/dev/null || true
-
-            # Try to collect results for what we could get now
-            make selftests-results
+            # we are tempted to try to collect logs but if the hosts
+            # are crashed that's futile. Just hope we collected the
+            # crash logs.
           else
             echo "ci-test process already exited"
           fi
