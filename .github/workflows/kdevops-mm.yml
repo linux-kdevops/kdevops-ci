@@ -27,13 +27,40 @@ jobs:
       - name: Run CI tests
         run: |
           cd kdevops
-          nohup stdbuf -oL bash -c 'make ci-test' > ci.log 2>&1 &
+
+          # Run the CI test suite in a clean, isolated background process group.
+          #
+          # - `nohup`: Ensures the test runner continues even if the controlling
+          #             terminal (e.g. the CI shell) ends or gets a SIGHUP.
+          # - `stdbuf -oL`: Forces line-buffered stdout to ensure log output
+          #                 appears in real-time (especially important for
+          #                 CI logs).
+          # - `setsid`: Starts the process in a new session and process group
+          #             so we can later kill the entire test group cleanly
+          #             (including all children like ansible-playbook, ssh,
+          #             etc.) using a single `kill -TERM -- -$PID`.
+          nohup stdbuf -oL bash -c 'setsid make ci-test' > ci.log 2>&1 &
           echo $! > ci.pid
+          CI_PID=$(cat ci.pid)
           CI_WATCHDOG="scripts/workflows/generic/crash_watchdog.py"
-          while kill -0 $(cat ci.pid) 2> /dev/null; do
-            $CI_WATCHDOG || echo watchdog barfed
+          while kill -0 $CI_PID 2> /dev/null; do
+            $CI_WATCHDOG || break
             sleep 60
           done
+
+          if kill -0 $CI_PID 2>/dev/null; then
+            echo "Killing ci-test due to possible crash."
+            echo "Try to end things gracefully sending TERM first..."
+            kill -TERM -- -"$CI_PID" 2>/dev/null || true
+            sleep 10
+            echo "Now we wack all processes sending KILL ..."
+            kill -KILL -- -"$CI_PID" 2>/dev/null || true
+
+            # Try to collect results for what we could get now
+            make selftests-results
+          else
+            echo "ci-test process already exited"
+          fi
 
           # Check for kernel test logs and add them if they exist
           KERNEL_LOGS=$(find workflows/selftests/results/last-run -name "*.dmesg.log" 2>/dev/null)
