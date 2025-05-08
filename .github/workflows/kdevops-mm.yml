@@ -1,0 +1,94 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+# Most simple Linux kernel subsystems can be tested with this target
+# test setup. For more elaborates tests look for a topic branch under the
+# kdevops-ci tree. For example to test a filesystem look at the fstests
+# branch.
+
+name: Run generic kdevops CI tests
+
+on:
+  schedule:
+    - cron: '0 14 * * *'
+    # - cron: '*/20 * * * *'
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+  workflow_dispatch:  # Allow manual triggering
+    inputs:
+      kernel_tree:
+        description: "Linux kernel tree to use"
+        required: true
+        default: 'linux'
+        type: choice
+        options:
+          - linux
+          - linux-next
+          - linux-stable
+      kernel_ref:
+        description: "Linux tree git reference (branch/tag/commit-id)"
+        required: true
+        default: "master"
+        type: string
+
+jobs:
+  generate_ref:
+    name: Determine kernel_ref value
+    outputs:
+      kernel_ref: ${{ steps.set_kernel_ref.outputs.kernel_ref }}
+      kernel_tree: ${{ steps.set_kernel_ref.outputs.kernel_tree }}
+    runs-on: [self-hosted]
+    steps:
+      - name: Set kernel_ref based on trigger type
+        id: set_kernel_ref
+        run: |
+          current_date=$(date +'%Y%m%d')
+          # current_date=$(date -d "yesterday" +'%Y%m%d')
+          kernel_ref="next-${current_date}"
+          kernel_tree="linux-next"
+          if ! git ls-remote --tags "/mirror/${kernel_tree}.git" "$kernel_ref" | grep --quiet "$kernel_ref"; then
+            echo "Linux kernel ref ${kernel_ref} does not exist. Skipping."
+            kernel_ref="unset"
+          echo "kernel_ref=${kernel_ref}" >> "$GITHUB_OUTPUT"
+          fi
+          echo "kernel_ref=${kernel_ref}" >> "$GITHUB_OUTPUT"
+          echo "kernel_tree=${kernel_tree}" >> "$GITHUB_OUTPUT"
+          echo "DEBUG: kernel_ref=${kernel_ref}, kernel_tree=${kernel_tree}"
+
+  setup:
+    needs: generate_ref
+    if: ${{ startsWith(needs.generate_ref.outputs.kernel_ref, 'next-') }}
+    uses: ./.github/workflows/kdevops-init.yml
+    with:
+      kernel_ref: ${{ needs.generate_ref.outputs.kernel_ref || 'master' }}
+      kernel_tree: ${{ needs.generate_ref.outputs.kernel_tree || 'linux' }}
+    secrets: inherit
+
+  run-tests:
+    needs: setup
+    name: Run CI tests
+    runs-on: [self-hosted, Linux, X64]
+    steps:
+      - name: Run CI tests
+        run: |
+          cd kdevops
+          CI_REPO="${{ github.repository }}" make ci-test
+
+          echo -e "Kernel tests results:\n" > ci.commit_extra
+          tail -n 1 workflows/selftests/results/last-run/*/*.dmesg.log >> ci.commit_extra
+          echo -e "\n\n" >> ci.commit_extra
+          echo -e "Userspace test results:\n" >> ci.commit_extra
+          tail -n 1 workflows/selftests/results/last-run/*/*.userspace.log >> ci.commit_extra
+          echo -e "\n\n" >> ci.commit_extra
+
+          if grep -i -q "fail" ci.commit_extra ; then
+            echo "fail" > ci.result
+          else
+            echo "ok" > ci.result
+          fi
+
+  cleanup:
+    needs: run-tests
+    uses: ./.github/workflows/kdevops-cleanup.yml
+    secrets: inherit

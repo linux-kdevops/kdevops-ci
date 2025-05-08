@@ -20,9 +20,6 @@ jobs:
       - name: Get systemd journal files
         if: ${{ job.status != 'cancelled' }}
         run: |
-          if [[ ! -d kdevops ]]; then
-            exit 0
-          fi
           cd kdevops
           make journal-dump
 
@@ -35,11 +32,8 @@ jobs:
       - name: Build our kdevops archive results
         if: ${{ job.status != 'cancelled' }}
         run: |
-          if [[ ! -d kdevops ]]; then
-            exit 0
-          fi
           cd kdevops
-          make ci-archive
+          CI_REPO="${{ github.repository }}" make ci-archive
 
       - name: Upload our kdevops results archive
         if: ${{ job.status != 'cancelled' }}
@@ -51,9 +45,6 @@ jobs:
       - name: Run kdevops make destroy
         if: always()
         run: |
-          if [[ ! -d kdevops ]]; then
-            exit 0
-          fi
           cd kdevops
           make destroy
           cd ..
