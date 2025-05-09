@@ -58,7 +58,7 @@ jobs:
         run: |
           cd kdevops
           if [[ -z "${{ inputs.kdevops_defconfig }}" ]]; then
-            KDEVOPS_DEFCONFIG=$(basename ${{ github.repository }})
+            KDEVOPS_DEFCONFIG=${{ github.ref_name }}
           else
             KDEVOPS_DEFCONFIG="${{ inputs.kdevops_defconfig }}"
           fi
