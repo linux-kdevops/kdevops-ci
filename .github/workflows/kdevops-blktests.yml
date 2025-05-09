@@ -34,23 +34,25 @@ jobs:
     outputs:
       kernel_ref: ${{ steps.set_kernel_ref.outputs.kernel_ref }}
       kernel_tree: ${{ steps.set_kernel_ref.outputs.kernel_tree }}
+      moniker: ${{ steps.set_moniker.outputs.moniker }}
     runs-on: [self-hosted]
     steps:
+      - name: Determine moniker
+        id: set_moniker
+        run: |
+          case "${{ steps.set_kernel_ref.outputs.kernel_tree }}" in
+            linux) moniker="mainline" ;;
+            linux-stable) moniker="stable" ;;
+            linux-next) moniker="linux-next" ;;
+            *) echo "Unknown kernel_tree"; exit 1 ;;
+          esac
+          echo "moniker=$moniker" >> $GITHUB_OUTPUT
+
       - name: Set kernel_ref based on trigger type
         id: set_kernel_ref
         run: |
-          current_date=$(date +'%Y%m%d')
-          # current_date=$(date -d "yesterday" +'%Y%m%d')
-          kernel_ref="next-${current_date}"
-          kernel_tree="linux-next"
-          if ! git ls-remote --tags "/mirror/${kernel_tree}.git" "$kernel_ref" | grep --quiet "$kernel_ref"; then
-            echo "Linux kernel ref ${kernel_ref} does not exist. Skipping."
-            kernel_ref="unset"
-          echo "kernel_ref=${kernel_ref}" >> "$GITHUB_OUTPUT"
-          fi
-          echo "kernel_ref=${kernel_ref}" >> "$GITHUB_OUTPUT"
-          echo "kernel_tree=${kernel_tree}" >> "$GITHUB_OUTPUT"
-          echo "DEBUG: kernel_ref=${kernel_ref}, kernel_tree=${kernel_tree}"
+          kernel_ref=$(./scripts/korg-releases.py --moniker "${{ steps.set_moniker.outputs.moniker }}")
+          echo "kernel_ref=$kernel_ref" >> $GITHUB_OUTPUT
 
   setup:
     needs: generate_ref
