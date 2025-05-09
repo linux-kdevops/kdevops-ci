@@ -33,7 +33,7 @@ jobs:
         if: ${{ job.status != 'cancelled' }}
         run: |
           cd kdevops
-          CI_REPO="${{ github.repository }}" make ci-archive
+          CI_REPO="${{ github.ref_name }}" make ci-archive
 
       - name: Upload our kdevops results archive
         if: ${{ job.status != 'cancelled' }}

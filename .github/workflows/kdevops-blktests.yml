@@ -80,7 +80,7 @@ jobs:
       - name: Run CI tests
         run: |
           cd kdevops
-          CI_REPO="${{ github.repository }}" make ci-test
+          CI_REPO="${{ github.ref_name }}" make ci-test
 
           echo -e "Kernel tests results:\n" > ci.commit_extra
           tail -n 1 workflows/selftests/results/last-run/*/*.dmesg.log >> ci.commit_extra
