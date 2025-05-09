@@ -66,7 +66,6 @@ jobs:
 
   setup:
     needs: generate_ref
-    if: ${{ startsWith(needs.generate_ref.outputs.kernel_ref, 'next-') }}
     uses: ./.github/workflows/kdevops-init.yml
     with:
       kernel_ref: ${{ needs.generate_ref.outputs.kernel_ref || 'master' }}
