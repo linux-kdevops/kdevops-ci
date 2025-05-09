@@ -30,16 +30,27 @@ on:
 jobs:
   generate_ref:
     name: Determine kernel_ref value
+    runs-on: [self-hosted]
     outputs:
       kernel_ref: ${{ steps.set_kernel_ref.outputs.kernel_ref }}
-      kernel_tree: ${{ steps.set_kernel_ref.outputs.kernel_tree }}
+      kernel_tree: ${{ steps.set_kernel_tree.outputs.kernel_tree }}
       moniker: ${{ steps.set_moniker.outputs.moniker }}
-    runs-on: [self-hosted]
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Set kernel_tree (default if not provided)
+        id: set_kernel_tree
+        run: |
+          kernel_tree="${{ github.event.inputs.kernel_tree }}"
+          if [ -z "$kernel_tree" ]; then
+            kernel_tree="linux"
+          fi
+          echo "kernel_tree=$kernel_tree" >> $GITHUB_OUTPUT
+
       - name: Determine moniker
         id: set_moniker
         run: |
-          case "${{ steps.set_kernel_ref.outputs.kernel_tree }}" in
+          case "${{ steps.set_kernel_tree.outputs.kernel_tree }}" in
             linux) moniker="mainline" ;;
             linux-stable) moniker="stable" ;;
             linux-next) moniker="linux-next" ;;
