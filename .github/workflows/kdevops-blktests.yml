@@ -1,11 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0
-#
-# Most simple Linux kernel subsystems can be tested with this target
-# test setup. For more elaborates tests look for a topic branch under the
-# kdevops-ci tree. For example to test a filesystem look at the fstests
-# branch.
-
-name: Run generic kdevops CI tests
+%YAML 1.2
+---
+name: Run blktests kdevops CI tests
 
 on:
   schedule:
