@@ -41,11 +41,3 @@ jobs:
         with:
           name: kdevops-ci-results
           path: ${{ env.LINUX_KDEVOPS_PATH }}/kdevops/archive/*.zip
-
-      - name: Run kdevops make destroy
-        if: always()
-        run: |
-          cd kdevops
-          make destroy
-          cd ..
-          rm -rf kdevops

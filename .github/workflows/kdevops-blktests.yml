@@ -95,7 +95,20 @@ jobs:
             echo "ok" > ci.result
           fi
 
-  cleanup:
+  archive:
     needs: run-tests
-    uses: ./.github/workflows/kdevops-cleanup.yml
+    uses: ./.github/workflows/kdevops-archive.yml
     secrets: inherit
+
+  cleanup:
+    name: Cleanup
+    needs: [setup, run-tests, archive]
+    runs-on: [self-hosted, Linux, X64]
+    if: always()
+    steps:
+      - name: Run kdevops make destroy
+        run: |
+          cd kdevops
+          make destroy
+          cd ..
+          rm -rf kdevops
