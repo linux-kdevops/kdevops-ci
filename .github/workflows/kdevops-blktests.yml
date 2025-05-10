@@ -83,10 +83,10 @@ jobs:
           CI_REPO="${{ github.ref_name }}" make ci-test
 
           echo -e "Kernel tests results:\n" > ci.commit_extra
-          tail -n 1 workflows/selftests/results/last-run/*/*.dmesg.log >> ci.commit_extra
+          tail -n 1 workflows/blktests/results/last-run/*/*.dmesg.log >> ci.commit_extra
           echo -e "\n\n" >> ci.commit_extra
           echo -e "Userspace test results:\n" >> ci.commit_extra
-          tail -n 1 workflows/selftests/results/last-run/*/*.userspace.log >> ci.commit_extra
+          tail -n 1 workflows/blktests/results/last-run/*/*.userspace.log >> ci.commit_extra
           echo -e "\n\n" >> ci.commit_extra
 
           if grep -i -q "fail" ci.commit_extra ; then
