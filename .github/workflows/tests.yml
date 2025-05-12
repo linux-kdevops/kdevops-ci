@@ -1,0 +1,38 @@
+# SPDX-License-Identifier: GPL-2.0
+
+name: Kdevops Test Workflow
+
+on:
+  workflow_call:  # Makes this workflow reusable
+    inputs:
+      ci_workflow:
+        required: false
+        type: string
+        default: 'demo'
+
+jobs:
+  tests:
+    name: Run CI tests
+    runs-on: [self-hosted, Linux, X64]
+    steps:
+      - name: Run CI tests
+        run: |
+          cd kdevops
+          make ci-test CI_WORKFLOW="${{ inputs.ci_workflow }}"
+
+          echo -e "Kernel tests results:\n" > ci.commit_extra
+
+          find workflows/blktests/results/last-run/ -name '*.dmesg.log' \
+          -exec tail -n 1 {} + >> ci.commit_extra
+
+          echo -e "\n\n" >> ci.commit_extra
+          echo -e "Userspace test results:\n" >> ci.commit_extra
+          find workflows/blktests/results/last-run/ -name '*.userspace.log' \
+          -exec tail -n 1 {} + >> ci.commit_extra
+          echo -e "\n\n" >> ci.commit_extra
+
+          if grep -i -q "fail" ci.commit_extra ; then
+            echo "fail" > ci.result
+          else
+            echo "ok" > ci.result
+          fi

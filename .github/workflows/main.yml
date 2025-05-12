@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0
 ---
-name: Run blktests kdevops CI tests
+name: Run Kdevops CI Workflow
 
 on:
   schedule:
@@ -24,12 +24,16 @@ on:
       kernel_ref:
         description: "Linux tree git reference (branch/tag/commit-id)"
         required: true
-        default: "master"
+        default: 'master'
         type: string
+      ci_workflow:
+        required: false
+        type: string
+        default: 'demo'
 
 jobs:
   generate_ref:
-    name: Determine kernel_ref value
+    name: Determine Linux kernel Git Reference
     runs-on: [self-hosted]
     outputs:
       kernel_ref: ${{ steps.set_kernel_ref.outputs.kernel_ref }}
@@ -66,53 +70,28 @@ jobs:
 
   setup:
     needs: generate_ref
-    uses: ./.github/workflows/kdevops-init.yml
+    uses: ./.github/workflows/setup.yml
     with:
       kernel_ref: ${{ needs.generate_ref.outputs.kernel_ref || 'master' }}
       kernel_tree: ${{ needs.generate_ref.outputs.kernel_tree || 'linux' }}
+      ci_workflow: ${{ inputs.ci_workflow || github.ref_name }}
     secrets: inherit
 
   run-tests:
     needs: setup
-    name: Run CI tests
-    runs-on: [self-hosted, Linux, X64]
-    steps:
-      - name: Run CI tests
-        run: |
-          cd kdevops
-          CI_REPO="${{ github.ref_name }}" make ci-test
-
-          echo -e "Kernel tests results:\n" > ci.commit_extra
-
-          find workflows/blktests/results/last-run/ -name '*.dmesg.log' \
-          -exec tail -n 1 {} + >> ci.commit_extra
-
-          echo -e "\n\n" >> ci.commit_extra
-          echo -e "Userspace test results:\n" >> ci.commit_extra
-          find workflows/blktests/results/last-run/ -name '*.userspace.log' \
-          -exec tail -n 1 {} + >> ci.commit_extra
-          echo -e "\n\n" >> ci.commit_extra
-
-          if grep -i -q "fail" ci.commit_extra ; then
-            echo "fail" > ci.result
-          else
-            echo "ok" > ci.result
-          fi
+    uses: ./.github/workflows/tests.yml
+    with:
+      ci_workflow: ${{ inputs.ci_workflow || github.ref_name }}
+    secrets: inherit
 
   archive:
     needs: run-tests
-    uses: ./.github/workflows/kdevops-archive.yml
+    uses: ./.github/workflows/archive.yml
+    with:
+      ci_workflow: ${{ inputs.ci_workflow || github.ref_name }}
     secrets: inherit
 
   cleanup:
-    name: Cleanup
     needs: [setup, run-tests, archive]
-    runs-on: [self-hosted, Linux, X64]
-    if: always()
-    steps:
-      - name: Run kdevops make destroy
-        run: |
-          cd kdevops
-          make destroy
-          cd ..
-          rm -rf kdevops
+    uses: ./.github/workflows/cleanup.yml
+    secrets: inherit

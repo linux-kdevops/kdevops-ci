@@ -3,14 +3,19 @@
 # This can be used towards the end of your action. All tasks here run even if
 # any of the previous tasks failed.
 
-name: Kdevops cleanup workflow
+name: Kdevops Archive Workflow
 
 on:
   workflow_call:  # Makes this workflow reusable
+    inputs:
+      ci_workflow:
+        required: false
+        type: string
+        default: 'demo'
 
 jobs:
-  cleanup:
-    name: Archive results and cleanup
+  archive:
+    name: Archive results
     runs-on: [self-hosted, Linux, X64]
     steps:
       - name: Set Linux kdevops development path
@@ -33,7 +38,7 @@ jobs:
         if: ${{ job.status != 'cancelled' }}
         run: |
           cd kdevops
-          CI_REPO="${{ github.ref_name }}" make ci-archive
+          make ci-archive CI_WORKFLOW="${{ inputs.ci_workflow }}"
 
       - name: Upload our kdevops results archive
         if: ${{ job.status != 'cancelled' }}

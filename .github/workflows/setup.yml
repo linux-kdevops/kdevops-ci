@@ -11,7 +11,7 @@
 #   - Installs your Linux kernel tree on them
 #   - Builds all of your test requirements for your Linux kernel tree
 
-name: Base kdevops workflow
+name: Kdevops Setup Workflow
 
 on:
   workflow_call:  # Makes this workflow reusable
@@ -22,11 +22,15 @@ on:
       kernel_tree:
         required: false
         type: string
-        default: "linux"
+        default: 'linux'
       kernel_ref:
         required: false
         type: string
-        default: "master"
+        default: 'master'
+      ci_workflow:
+        required: false
+        type: string
+        default: 'demo'
 
 jobs:
   setup:
@@ -42,7 +46,7 @@ jobs:
       - name: Checkout kdevops
         run: |
           rm -rf kdevops
-          git clone --branch ci-repo https://github.com/dkruces/kdevops kdevops
+          git clone --branch ci-workflow https://github.com/dkruces/kdevops kdevops
 
       - name: Checkout custom branch with delta on kdevops/linux
         run: |
@@ -58,7 +62,7 @@ jobs:
         run: |
           cd kdevops
           if [[ -z "${{ inputs.kdevops_defconfig }}" ]]; then
-            KDEVOPS_DEFCONFIG=${{ github.ref_name }}
+            KDEVOPS_DEFCONFIG=${{ inputs.ci_workflow }}
           else
             KDEVOPS_DEFCONFIG="${{ inputs.kdevops_defconfig }}"
           fi
@@ -156,4 +160,4 @@ jobs:
       - name: Build required ci tests
         run: |
           cd kdevops
-          CI_REPO="${{ github.ref_name }}" make ci-build-test
+          make ci-build-test CI_WORKFLOW=${{ inputs.ci_workflow }}

@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+# This can be used towards the end of your action. All tasks here run even if
+# any of the previous tasks failed.
+
+name: Kdevops Cleanup Workflow
+
+on:
+  workflow_call:  # Makes this workflow reusable
+    inputs:
+      ci_workflow:
+        required: false
+        type: string
+        default: 'demo'
+
+jobs:
+  cleanup:
+    name: Cleanup
+    runs-on: [self-hosted, Linux, X64]
+    if: always()
+    steps:
+      - name: Run kdevops make destroy
+        run: |
+          cd kdevops
+          make destroy
+          cd ..
+          rm -rf kdevops
