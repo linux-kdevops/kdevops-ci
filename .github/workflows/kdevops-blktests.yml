@@ -45,7 +45,7 @@ jobs:
           if [ -z "$kernel_tree" ]; then
             kernel_tree="linux"
           fi
-          echo "kernel_tree=$kernel_tree" >> $GITHUB_OUTPUT
+          ./scripts/github_output.sh kernel_tree "$kernel_tree"
 
       - name: Determine moniker
         id: set_moniker
@@ -56,13 +56,13 @@ jobs:
             linux-next) moniker="linux-next" ;;
             *) echo "Unknown kernel_tree"; exit 1 ;;
           esac
-          echo "moniker=$moniker" >> $GITHUB_OUTPUT
+          ./scripts/github_output.sh moniker "$moniker"
 
       - name: Set kernel_ref based on trigger type
         id: set_kernel_ref
         run: |
           kernel_ref=$(./scripts/korg-releases.py --moniker "${{ steps.set_moniker.outputs.moniker }}")
-          echo "kernel_ref=$kernel_ref" >> $GITHUB_OUTPUT
+          ./scripts/github_output.sh kernel_ref "$kernel_ref"
 
   setup:
     needs: generate_ref
