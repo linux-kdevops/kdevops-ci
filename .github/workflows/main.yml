@@ -27,9 +27,21 @@ on:
         default: 'master'
         type: string
       ci_workflow:
-        required: false
-        type: string
-        default: 'demo'
+        description: "CI Workflow"
+        required: true
+        default: 'blktests_nvme'
+        type: choice
+        options:
+          - blktests
+          - blktests_block
+          - blktests_loop
+          - blktests_meta
+          - blktests_nbd
+          - blktests_nvme
+          - blktests_nvmemp
+          - blktests_scsi
+          - blktests_srp
+          - blktests_zbd
 
 jobs:
   generate_ref:
