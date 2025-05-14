@@ -1,0 +1,30 @@
+---
+name: "Reusable Workflow"
+
+on:
+  workflow_call:
+    inputs:
+      dir:
+        description: "Directory to create"
+        required: true
+        type: string
+        default: "workdir"
+
+jobs:
+  do-stuff:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Demo step mkdir
+        run: |
+          pwd
+          mkdir -p --verbose "${{ inputs.dir }}"
+          find .
+
+      - name: Demo step find
+        working-directory: ${{ inputs.dir }}
+        run: |
+          pwd
+          find .

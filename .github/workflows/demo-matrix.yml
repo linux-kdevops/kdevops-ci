@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: GPL-2.0
+---
+name: Demo Schedule
+
+on:
+  # schedule:  # Scheduled trigger (every 5 minutes)
+  #   - cron: '*/5 * * * *'
+
+jobs:
+
+  job1:
+    name: Job1
+    runs-on: [ubuntu-latest]
+    strategy:
+      matrix:
+        dir: [blktests-block, blktests-loop, blktests-meta]
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Demo step mkdir
+        run: |
+          pwd
+          mkdir -p --verbose ${{ matrix.dir }}
+          find .
+
+      - name: Demo step find
+        working-directory: ${{ matrix.dir }}
+        run: |
+          pwd
+          find .

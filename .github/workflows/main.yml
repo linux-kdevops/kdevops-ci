@@ -6,10 +6,10 @@ on:
   schedule:
     - cron: '0 14 * * *'
     # - cron: '*/20 * * * *'
-  push:
-    branches: ['**']
-  pull_request:
-    branches: ['**']
+  # push:
+  #   branches: ['**']
+  # pull_request:
+  #   branches: ['**']
   workflow_dispatch:  # Allow manual triggering
     inputs:
       kernel_tree:

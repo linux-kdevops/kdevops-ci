@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: GPL-2.0
+---
+name: Demo Manual 3
+
+on:
+  workflow_dispatch:  # Allow manual triggering
+    inputs:
+      dir:
+        description: "wdirectory"
+        required: true
+        default: 'blktests_nvme'
+        type: choice
+        options:
+          - blktests
+          - blktests_block
+          - blktests_loop
+          - blktests_meta
+          - blktests_nbd
+          - blktests_nvme
+          - blktests_nvmemp
+          - blktests_scsi
+          - blktests_srp
+          - blktests_zbd
+
+jobs:
+
+  job1:
+    name: Job1
+    uses: ./.github/workflows/w1.yml
+    with:
+      dir: ${{ inputs.dir || 'defaultdir' }}
