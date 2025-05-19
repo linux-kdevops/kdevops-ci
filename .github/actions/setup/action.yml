@@ -44,7 +44,7 @@ runs:
       shell: bash
       run: |
         rm --recursive --force --verbose kdevops/
-        git clone /mirror/kdevops.git kdevops
+        git clone https://github.com/dkruces/kdevops.git --branch ci-workflow kdevops
 
     - name: Checkout custom branch with delta on kdevops/linux
       working-directory: ${{ inputs.dir }}/kdevops
