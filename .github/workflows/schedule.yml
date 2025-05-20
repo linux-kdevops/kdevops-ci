@@ -38,6 +38,8 @@ jobs:
   schedule:
     name: Scheduled kdevops CI
     needs: [check_ref]
+    runs-on: [self-hosted]
+    secrets: inherit
     uses: ./.github/workflows/main.yml
     strategy:
       matrix:
