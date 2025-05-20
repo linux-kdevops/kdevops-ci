@@ -39,9 +39,14 @@ jobs:
     name: Scheduled kdevops CI
     needs: [check_ref]
     uses: ./.github/workflows/main.yml
+    secrets: inherit
     strategy:
       matrix:
-        ci_workflow: [blktests-block, blktests-loop, blktests-meta]
+        ci_workflow:
+          - blktests
+          - linux-mm-kpd
+          - linux-modules-kpd
+          - tmpfs
     with:
       ci_workflow: ${{ matrix.ci_workflow }}
       kernel_ref: ${{ needs.check_ref.outputs.kernel_ref }}

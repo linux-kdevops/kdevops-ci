@@ -4,6 +4,10 @@ name: Setup kdevops
 description: Setup kdevops workspace
 
 inputs:
+  ci_workflow:
+    required: false
+    type: string
+    default: 'demo'
   dir:
     description: 'Directory'
     required: true
@@ -16,10 +20,6 @@ inputs:
     required: false
     type: string
     default: 'master'
-  ci_workflow:
-    required: false
-    type: string
-    default: 'demo'
 
 runs:
   using: "composite"
@@ -27,10 +27,8 @@ runs:
     - name: Create workspace directory
       shell: bash
       run: |
-        pwd
         rm --recursive --force --verbose ${{ inputs.dir }}
         mkdir --parent --verbose ${{ inputs.dir }}
-        find .
 
     - name: Configure git
       shell: bash
@@ -43,7 +41,6 @@ runs:
       working-directory: ${{ inputs.dir }}
       shell: bash
       run: |
-        rm --recursive --force --verbose kdevops/
         git clone https://github.com/dkruces/kdevops.git --branch ci-workflow kdevops
 
     - name: Checkout custom branch with delta on kdevops/linux
@@ -71,11 +68,12 @@ runs:
         fi
 
         if [[ ! -f defconfigs/$KDEVOPS_DEFCONFIG ]]; then
-          echo "kdevops lacks a defconfig for this repository, expected to find: defconfigs/$KDEVOPS_DEFCONFIG"
+          echo "Missing defconfig: defconfigs/$KDEVOPS_DEFCONFIG"
           exit 1
         fi
 
-        "${{ github.workspace }}/scripts/github_output.sh" KDEVOPS_DEFCONFIG "$KDEVOPS_DEFCONFIG"
+        "${{ github.workspace }}/scripts/github_output.sh" \
+          KDEVOPS_DEFCONFIG "$KDEVOPS_DEFCONFIG"
 
     - name: Initialize CI metadata for kdevops-results-archive for linux
       id: metadata
@@ -90,8 +88,10 @@ runs:
         RELEVANT_GIT_TAG=$(cat ../ci.ref)
         RELEVANT_GIT_REF=$(git rev-parse --short=12 $RELEVANT_GIT_TAG)
 
-        "${{ github.workspace }}/scripts/github_output.sh" LINUX_GIT_REF "$RELEVANT_GIT_REF"
-        "${{ github.workspace }}/scripts/github_output.sh" LINUX_GIT_TAG "$RELEVANT_GIT_TAG"
+        "${{ github.workspace }}/scripts/github_output.sh" \
+          LINUX_GIT_REF "$RELEVANT_GIT_REF"
+        "${{ github.workspace }}/scripts/github_output.sh" \
+          LINUX_GIT_TAG "$RELEVANT_GIT_TAG"
 
         # Start out pessimistic
         echo "unknown" > ../ci.result
@@ -143,11 +143,21 @@ runs:
         echo "kdevops host prefix: $KDEVOPS_HOSTS_PREFIX"
         echo "kdevops defconfig:   defconfig-$KDEVOPS_DEFCONFIG"
 
+        # Customize KMOD_TIMEOUT when required
+        KMOD_TIMEOUT_ARG=
+        if [[ "$(hostname)" == *smc111* && \
+              "$KDEVOPS_DEFCONFIG" == "linux-modules-kpd" ]]; then
+          KMOD_TIMEOUT_ARG="KMOD_TIMEOUT=222"
+        fi
+
         KDEVOPS_ARGS="\
         KDEVOPS_HOSTS_PREFIX=$KDEVOPS_HOSTS_PREFIX \
         LINUX_TREE=$LINUX_TREE \
         LINUX_TREE_REF=$LINUX_TREE_REF \
         ANSIBLE_CFG_CALLBACK_PLUGIN="debug" \
+        ${KMOD_TIMEOUT_ARG} \
+        GUEST_KDEVOPS_REPO="https://github.com/dkruces/kdevops.git" \
+        GUEST_KDEVOPS_REF="ci-workflow" \
         defconfig-$KDEVOPS_DEFCONFIG"
         echo "Going to run:"
         echo "make $KDEVOPS_ARGS"

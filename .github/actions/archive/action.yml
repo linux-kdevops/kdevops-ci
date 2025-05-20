@@ -3,10 +3,15 @@
 name: Archive results
 description: Archive kdevops results in https://github.com/linux-kdevops/kdevops-results-archive.git
 inputs:
+  ci_workflow:
+    required: false
+    type: string
+    default: 'demo'
   dir:
     description: 'Directory'
     required: true
     default: 'workdir'
+
 runs:
   using: "composite"
   steps:
@@ -21,4 +26,3 @@ runs:
       shell: bash
       run: |
         make ci-archive CI_WORKFLOW="${{ inputs.ci_workflow }}"
-

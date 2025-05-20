@@ -24,16 +24,32 @@ runs:
 
         echo -e "Kernel tests results:\n" > ci.commit_extra
 
+    - name: Generate workflow results path
+      id: setpath
+      shell: bash
+      run: |
+        case "${{ inputs.ci_workflow }}" in
+          blktests*) wpath="workflows/blktests" ;;
+          *btrfs*) wpath="workflows/fstests" ;;
+          *ext4*) wpath="workflows/fstests" ;;
+          tmpfs*) wpath="workflows/fstests" ;;
+          *xfs*) wpath="workflows/fstests" ;;
+          *) wpath="workflows/selftests" ;;
+        esac
+
+        echo "path=$path" >> $GITHUB_OUTPUT
+        "${{ github.workspace }}/scripts/github_output.sh" wpath "$wpath"
+
     - name: Generate CI commit info
       working-directory: ${{ inputs.dir }}/kdevops
       shell: bash
       run: |
-        find workflows/blktests/results/last-run/ -name '*.dmesg.log' \
+        find ${{ steps.setpath.outputs.wpath }}/results/last-run/ -name '*.dmesg.log' \
         -exec tail -n 1 {} + >> ci.commit_extra
 
         echo -e "\n\n" >> ci.commit_extra
         echo -e "Userspace test results:\n" >> ci.commit_extra
-        find workflows/blktests/results/last-run/ -name '*.userspace.log' \
+        find ${{ steps.setpath.outputs.wpath }}/results/last-run/ -name '*.userspace.log' \
         -exec tail -n 1 {} + >> ci.commit_extra
         echo -e "\n\n" >> ci.commit_extra
 
