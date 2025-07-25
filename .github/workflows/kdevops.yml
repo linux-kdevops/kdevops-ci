@@ -1,0 +1,57 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+# Main unified kdevops CI workflow for Linux kernel trees.
+# This is the primary entry point that kernel trees should reference.
+# It orchestrates the complete CI pipeline: setup, testing, and cleanup.
+
+name: Unified kdevops CI
+
+on:
+  workflow_call:  # Makes this workflow reusable
+    inputs:
+      kdevops_defconfig:
+        description: 'Custom kdevops defconfig name (defaults to repository name)'
+        required: false
+        type: string
+      test_suite:
+        description: 'Test suite to run (defaults to generic)'
+        required: false
+        type: string
+        default: 'generic'
+
+jobs:
+  validate-secrets:
+    name: Validate required secrets
+    runs-on: [self-hosted, Linux, X64]
+    steps:
+      - name: Check required secrets
+        run: |
+          if [[ -z "${{ secrets.SSH_PRIVATE_KEY }}" ]]; then
+            echo "Error: SSH_PRIVATE_KEY secret is required but not set"
+            exit 1
+          fi
+          echo "All required secrets are configured"
+
+  setup:
+    needs: validate-secrets
+    uses: ./.github/workflows/kdevops-init.yml
+    with:
+      kdevops_defconfig: ${{ inputs.kdevops_defconfig }}
+    secrets: inherit
+
+  run-tests:
+    needs: setup
+    name: Run CI tests
+    runs-on: [self-hosted, Linux, X64]
+    steps:
+      - name: Run CI tests
+        run: |
+          cd kdevops
+          make ci-test
+          echo "ok" > ci.result
+
+  cleanup:
+    needs: [run-tests, setup]
+    if: always()  # This ensures cleanup runs even if run-tests fails
+    uses: ./.github/workflows/kdevops-cleanup.yml
+    secrets: inherit

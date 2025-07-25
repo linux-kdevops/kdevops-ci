@@ -1,0 +1,16 @@
+# Copy this file to .github/workflows/ci.yml in your Linux kernel tree
+# Minimal kdevops CI setup - requires only SSH_PRIVATE_KEY secret
+
+name: Kdevops CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  kdevops-workflow:
+    uses: linux-kdevops/kdevops-ci/.github/workflows/kdevops.yml@unified-kpd-tests
+    secrets: inherit

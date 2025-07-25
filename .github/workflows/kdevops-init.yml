@@ -25,6 +25,15 @@ jobs:
     name: Setup kdevops environment
     runs-on: [self-hosted, Linux, X64]
     steps:
+      - name: Validate required secrets early
+        run: |
+          if [[ -z "${{ secrets.SSH_PRIVATE_KEY }}" ]]; then
+            echo "Error: SSH_PRIVATE_KEY secret is required but not set"
+            echo "Please configure this secret in your repository settings"
+            exit 1
+          fi
+          echo "Required secrets validation passed"
+
       - name: Verify we won't expect user input interactions on the host key
         run: |
           mkdir -p ~/.ssh
