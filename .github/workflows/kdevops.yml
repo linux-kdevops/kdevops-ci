@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-2.0
+# SPDX-License-Identifier: GPL-2.0 OR copyleft-next-0.3.1
 #
 # Main unified kdevops CI workflow for Linux kernel trees.
 # This is the primary entry point that kernel trees should reference.

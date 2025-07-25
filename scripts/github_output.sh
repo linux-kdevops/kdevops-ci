@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-2.0 OR copyleft-next-0.3.1
 #
 # Usage: ./github_output.sh key value
 set -euxo pipefail

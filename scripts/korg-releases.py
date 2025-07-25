@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# SPDX-License-Identifier: copyleft-next-0.3.1
+# SPDX-License-Identifier: GPL-2.0 OR copyleft-next-0.3.1
 import sys
 import logging
 import argparse
